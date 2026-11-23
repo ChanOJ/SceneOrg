@@ -1,0 +1,125 @@
+name: "Infra: bunny.net"
+
+# - Pull requests touching infra/: format check, validate and plan (shown in the run summary).
+# - Push to main touching the same paths: plan only, to spot drift or a forgotten apply.
+# - Manual run: plan, or apply (main only) followed by a commit of the encrypted state and,
+#   optionally, the smoke test.
+#
+# There is no deploy workflow: site/ is generated on the Mac from ~/Code/id3x/raw (never in the
+# repository) and deployed from there (README, "Deploying").
+#
+# Repository secrets: BUNNY_API_KEY, TF_VAR_STATE_PASSPHRASE.
+
+on:
+  pull_request:
+    paths: ["infra/**", "site.json", ".github/workflows/infra.yml"]
+  push:
+    branches: [main]
+    paths: ["infra/**", "site.json", ".github/workflows/infra.yml"]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "plan or apply"
+        type: choice
+        options: [plan, apply]
+        default: plan
+      smoke_test:
+        description: "After apply: run the smoke test (off for the first apply, before the first deploy)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infra
+  cancel-in-progress: false
+
+env:
+  TOFU_VERSION: "1.13.9"
+  BUNNYNET_API_KEY: ${{ secrets.BUNNY_API_KEY }}
+  TF_VAR_state_passphrase: ${{ secrets.TF_VAR_STATE_PASSPHRASE }}
+
+defaults:
+  run:
+    working-directory: infra
+
+jobs:
+  plan:
+    if: github.event_name != 'workflow_dispatch' || inputs.action == 'plan'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+          tofu_wrapper: false
+
+      - run: tofu fmt -check -recursive
+      - run: tofu init -input=false
+      - run: tofu validate
+
+      - name: Plan
+        run: |
+          tofu plan -input=false -no-color -out=tfplan
+          {
+            echo "## OpenTofu plan"
+            echo '```'
+            tofu show -no-color tfplan
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+          tofu_wrapper: false
+
+      - run: tofu init -input=false
+
+      - name: Plan
+        run: |
+          tofu plan -input=false -no-color -out=tfplan
+          {
+            echo "## Applied plan"
+            echo '```'
+            tofu show -no-color tfplan
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply
+        id: apply
+        run: tofu apply -input=false -no-color tfplan
+
+      # Runs even when the apply fails: a partial apply still records resources
+      # in the state, which must not be lost.
+      - name: Commit the encrypted state
+        if: always() && steps.apply.outcome != 'skipped'
+        run: |
+          [ -f terraform.tfstate ] || { echo "No state written."; exit 0; }
+          # Refuse to commit anything that is not an encrypted state.
+          python3 -c 'import json,sys; d=json.load(open("terraform.tfstate")); sys.exit("state is not encrypted" if "resources" in d or "encrypted_data" not in d else 0)'
+          git add terraform.tfstate
+          if git diff --cached --quiet -- terraform.tfstate; then
+            echo "State unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update encrypted OpenTofu state (run ${{ github.run_id }})"
+          git push
+
+      # No deploy here: CI cannot build site/. A new (renamed) storage zone starts empty and
+      # must be filled from the Mac (scripts/publish.sh --no-build).
+      - name: Smoke test
+        if: steps.apply.outcome == 'success' && inputs.smoke_test
+        working-directory: .
+        run: python3 -I scripts/smoke_test.py
