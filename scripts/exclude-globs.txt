@@ -1,0 +1,51 @@
+# Files that must NOT be published (relative to site/; no '/' = basename anywhere; '*' crosses '/').
+# Checked by scripts/check_excludes.py and scripts/verify_build.py on site/ and hosting/.
+# statify.py only copies the skin and media files that rendered pages reference.
+
+# OS / tool junk
+.DS_Store
+Thumbs.db
+# engine code, server-side templates and their backups: never published, rendered to .htm instead
+*.asp
+*.aspx
+*.asa
+*.asax
+*.asmx
+*.inc
+*.cs
+*.config
+*.dll
+*.pdb
+*.bak
+*.cfg
+*.eml
+*.sql
+*.mdf
+*.ldf
+*.sqlite
+web.config
+global.asa
+parametres.inc
+# raw engine folders of the id3x store
+id3x/
+id3xdev/
+cgi/
+macros/
+core/
+bin/
+aspnet_client/
+# admin / upload / backup folders of the media store
+zi/bups/
+zi/aspnet_client/
+z/dbnet/
+z/oj_maint/
+# oneliner moderation word lists
+onliner_blacklist.txt
+onliner_french.txt
+# executables and archives (the media store holds an OJ.rar and a video: not referenced, never copied)
+*.exe
+*.com
+*.scr
+*.bat
+*.rar
+*.pls

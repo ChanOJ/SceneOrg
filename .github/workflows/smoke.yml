@@ -1,0 +1,20 @@
+name: "Monitoring: weekly smoke test"
+
+# Weekly check of the public site: sample pages, read-only hardening, custom 404. site/ is not in the repository (generated
+# on the Mac), so pages are checked by status and headers, not compared byte for byte.
+# A failure sends GitHub's usual "workflow run failed" notification.
+
+on:
+  schedule:
+    - cron: "41 5 * * 1" # every Monday at 05:41 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 -I scripts/smoke_test.py
