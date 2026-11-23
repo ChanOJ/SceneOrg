@@ -1,0 +1,53 @@
+.DS_Store
+
+# Secrets safety net (secrets never live in files)
+.env
+.env.*
+*.env
+# Proton Pass references only (no secret value)
+!infra/secrets.env
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+*.tfvars
+*.tfvars.json
+
+# Private notes: research notes, macro inventory, Wayback captures. Never published.
+private/
+
+# Generated static site (119 files), built on the Mac from the raw store ~/Code/id3x/raw by
+# scripts/build.py (the oneliner comes from the private database) and deployed from there.
+site/
+
+# OpenTofu
+.terraform/
+*.tfstate
+# The state is encrypted (infra/encryption.tf, enforced) and shared through git.
+!infra/terraform.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Generated or local working files (tmp/ also holds the deploy checks stamp)
+build/
+dist/
+tmp/
+__pycache__/
+*.sqlite
+*.mdf
+*.MDF
+*.ldf
+*.LDF
+*.db
+
+# Personal Claude Code settings
+.claude/settings.local.json
