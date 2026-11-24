@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Checks on site/: no leftover macro or form, local links resolve, footers, frames, oneliner
-window, no private data, nothing from the exclude list, build is deterministic."""
+window, no private data, nothing from the exclude list. With --rebuild (local only, needs the
+raw store): the committed site/ equals a fresh build, i.e. the build is deterministic."""
 import fnmatch
 import hashlib
 import re
@@ -74,10 +75,11 @@ def main():
         err(f"oneliner outside window: {min(dates, default=None)}..{max(dates, default=None)}")
     if re.search(r"[\w.+-]+@(?!\?\?\?\?)[\w-]+\.\w+", o):
         err("oneliner: e-mail address left")
-    first = digest()
-    subprocess.run([sys.executable, "-I", str(ROOT / "scripts/build.py")], check=True, stdout=subprocess.DEVNULL)
-    if digest() != first:
-        err("build is not deterministic")
+    if "--rebuild" in sys.argv:  # needs the raw store (local only): site/ must equal a fresh build
+        first = digest()
+        subprocess.run([sys.executable, "-I", str(ROOT / "scripts/build.py")], check=True, stdout=subprocess.DEVNULL)
+        if digest() != first:
+            err("build is not deterministic: site/ differs from a fresh build")
     for e in errors:
         print("ERROR", e)
     print(f"{len(files)} files checked, {len(errors)} error(s)")

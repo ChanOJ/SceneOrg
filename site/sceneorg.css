@@ -1,0 +1,50 @@
+.menulink {  
+  font-family: Verdana, Arial, Helvetica, sans-serif; 
+  color: #B8690A
+}
+
+.email {  
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+   color: #000000; text-decoration: none
+}
+
+.smallmenulink { 
+  font-family: Verdana, Arial, Helvetica, sans-serif; 
+  color: #B8690A
+}
+
+.searchlink {  
+  font-weight: normal; 
+  color: #000000
+}
+
+.searchlinkb {  
+  font-weight: bold; 
+  color: #000000
+}
+
+.news {
+  font-family: Arial, Helvetica;
+  font-size: 10pt;
+}
+
+a:active {  
+  text-decoration: underline; 
+  color: #FFFFFF; 
+  cursor: hand
+}
+
+a:link {  
+  text-decoration: none; 
+  cursor: hand
+}
+
+a:visited {  
+  text-decoration: none; 
+  cursor: hand
+}
+
+a:hover {  
+  text-decoration: underline; 
+  cursor: hand
+}

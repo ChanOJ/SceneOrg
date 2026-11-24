@@ -1,0 +1,67 @@
+name: "Website: deploy"
+
+# - Push to main touching site/ or hosting/: checks (excluded files, verify_build, ClamAV), sync site/
+#   to the storage zone, purge the CDN, then check the public site. Changes of site.json (e.g. a renamed zone) are
+#   deployed by the infra apply instead, once the zone exists.
+# - Manual run: same, optionally as a dry run.
+#
+# Repository secret: BUNNY_API_KEY (bunny.net account API key). The storage
+# zone and pull zone come from site.json.
+
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", "hosting/**", "scripts/exclude-globs.txt"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (show the plan without changing anything)"
+        type: boolean
+        default: true
+      allow_mass_delete:
+        description: "Allow deleting more than 25 % of the remote files"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+      MASS_DELETE: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_mass_delete }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: No excluded file in site/
+        run: python3 scripts/check_excludes.py
+
+      - name: Verify the site (no macro, form or private data left)
+        run: python3 scripts/verify_build.py
+
+      - name: Malware scan (ClamAV)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --quiet
+          clamscan -r --infected --no-summary site/ hosting/ || { echo "::error::ClamAV flagged files"; exit 1; }
+
+      - name: Sync to the storage zone and purge the cache
+        id: sync
+        run: |
+          args=""
+          if [ "$DRY_RUN" = "true" ]; then args="--dry-run"; fi
+          if [ "$MASS_DELETE" = "true" ]; then args="$args --allow-mass-delete"; fi
+          python3 scripts/deploy.py $args
+
+      - name: Smoke test
+        if: env.DRY_RUN != 'true' && steps.sync.outputs.skipped != 'true'
+        run: python3 scripts/smoke_test.py
