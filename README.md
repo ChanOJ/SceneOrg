@@ -30,14 +30,13 @@ Inputs come only from the shared raw store `~/Code/id3x/raw` (`$ID3X_RAW`): the 
 `id3/z/scene.org` and, for the oneliner only, `db/OJUICE.sqlite` (private, never copied here).
 
 ```bash
-python3 -I scripts/build.py          # site/ (git-ignored), deterministic
-python3 -I scripts/verify_build.py   # checks + builds a second time and compares hashes
-python3 -I scripts/check_excludes.py # nothing from scripts/exclude-globs.txt in site/
-scripts/publish.sh                   # build, verify, deploy to bunny.net, smoke test
+scripts/publish.sh   # build site/, verify it (second build, same hashes), check the exclude list
 ```
 
-`site/` is generated on the Mac because the oneliner needs the private database; CI only plans and
-applies `infra/` and runs the weekly smoke test. Hosting is the same as
-[OrangeJuiceV3](https://github.com/ChanOJ/OrangeJuiceV3): OpenTofu (`infra/`, encrypted state),
+`site/` (119 files) is **committed**: it is generated on the Mac (the oneliner needs the private
+database), reviewed in the pull request, and on merge the *Website: deploy* workflow checks it,
+scans it with ClamAV, syncs it to bunny.net, purges the CDN and runs the smoke test. `infra/` is
+applied by *Infra: bunny.net*; a weekly *Monitoring* run repeats the smoke test. Hosting is the
+same as [OrangeJuiceV3](https://github.com/ChanOJ/OrangeJuiceV3): OpenTofu (encrypted state),
 bunny.net storage zone + pull zone `sceneorg`, no edge script (no old query-string URL to map).
 One-time setup: `scripts/bootstrap.sh`.

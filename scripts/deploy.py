@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Synchronise site/ (+ hosting/404.html) to the bunny.net storage zone of site.json, then purge the CDN.
 
-Run from the Mac (site/ is generated there from the raw store ~/Code/id3x/raw and is not committed):
+Run by CI on merge (site/ is committed; generated on the Mac by scripts/build.py):
 
-  pass-cli run --env-file infra/secrets.env -- python3 -I scripts/deploy.py [--dry-run]
+  python3 -I scripts/deploy.py [--dry-run]     # CI, BUNNY_API_KEY from the repository secret
+  pass-cli run --env-file infra/secrets.env -- python3 -I scripts/deploy.py   # manual, from the Mac
 
 - Refuses to run unless scripts/verify_build.py and scripts/check_excludes.py pass on this exact
   build: it runs them itself, then records a stamp (tmp/deploy-checks.json, the SHA-256 of every

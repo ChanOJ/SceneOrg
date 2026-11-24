@@ -18,9 +18,6 @@ id_ed25519*
 # Private notes: research notes, macro inventory, Wayback captures. Never published.
 private/
 
-# Generated static site (119 files), built on the Mac from the raw store ~/Code/id3x/raw by
-# scripts/build.py (the oneliner comes from the private database) and deployed from there.
-site/
 
 # OpenTofu
 .terraform/
