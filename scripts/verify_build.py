@@ -35,7 +35,9 @@ def main():
         for g in globs:
             if fnmatch.fnmatch(f, g) or ("/" not in g and fnmatch.fnmatch(f.rsplit("/", 1)[-1], g)):
                 err(f"excluded file published: {f}")
-    for must in ("index.htm", "index.html", "main.html", "oneliner.html", "robots.txt", "sitemap.xml", "404.html",
+    if "bank.html" in files:
+        err("bank.html published")
+    for must in ("frame-restore.js", "domage/mod-player.js", "domage/chiptune/chiptune3.js", "its/its.css", "index.htm", "index.html", "main.html", "oneliner.html", "robots.txt", "sitemap.xml", "404.html",
                  "domage/index.html", "its/index.html"):
         if must not in files:
             err(f"missing {must}")
@@ -48,11 +50,23 @@ def main():
                 err(f"{f}: contains {bad!r}")
         if re.search(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", t) and f in ("oneliner.html", "index.htm"):
             err(f"{f}: IP-like text")
-        if f in ("staff.html", "domage/members.html", "oneliner.html", "index.htm") and "To be removed from this page" not in t:
+        if f in ("staff.html", "domage/members.html", "oneliner.html", "index.htm", "jobs/spirit.html",
+                 "jobs/magnus.html", "jobs/vulpine.html", "its/info.htm") and "To be removed from this page" not in t:
             err(f"{f}: missing removal footer")
-        if f.startswith("domage/") and f not in ("domage/index.htm", "domage/index.html", "domage/niks.html") \
-                and "window.top===window" not in t:
+        if f.startswith("domage/") and f not in ("domage/niks.html",) \
+                and "/frame-restore.js" not in t:
             err(f"{f}: not reopened in its frameset")
+        if re.search(r'<meta\s+name="author"', t, flags=re.I):
+            err(f"{f}: author meta (real name)")
+        if f.startswith("its/") and "its.css" not in t:
+            err(f"{f}: not limited to 800 px")
+        if f.startswith("domage/") and f.endswith(".html") and f != "domage/index.html":
+            for m in re.finditer(r'<a\s[^>]*href\s*=\s*"(?:https?|ftp)://[^"]*"[^>]*>', t, flags=re.I):
+                if 'target="_blank"' not in m.group(0) or 'rel="noopener"' not in m.group(0):
+                    err(f"{f}: external link without target=_blank rel=noopener: {m.group(0)[:80]}")
+        for bad in ("125735-41506", "Weichselgarten", "09131", "Changed by:", "http-equiv=\"refresh\"", "\uff20"):
+            if bad.lower() in t.lower():
+                err(f"{f}: contains {bad!r}")
         for m in re.finditer(r"""(?:href|src|background)\s*=\s*["']?([^"' >]+)""", t, flags=re.I):
             u = m.group(1)
             if u.startswith(("#", "mailto:", "http:", "https:", "ftp:", "news:", "javascript:")):

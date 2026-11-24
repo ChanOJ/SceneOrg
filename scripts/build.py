@@ -28,12 +28,23 @@ HOME_LINES = 20  # $$BCL:1:20$$ in the skin
 
 # Never published: server-side include, Teleport Pro duplicates of main.html / latest.html
 # (their *_files folders are absent), executables (hosting rules), empty files.
-SKIP = {"ftpsearch_form.inc", "main.htm", "latest.htm", "index.htm"}
+SKIP = {"ftpsearch_form.inc", "main.htm", "latest.htm", "index.htm",
+        "bank.html",  # bank details and account holder's name of scene.org: no banking data
+        "domage/but_modp.gif"}  # button of the ModPlug plugin download, replaced by the player
 SKIP_SUFFIX = {".exe", ".inc"}
-# Inner pages of domage/index.htm (a frameset): reopened inside it when landed on directly.
+# Inner pages of domage/index.htm (a frameset): reopened inside it when landed on directly
+# (frame-restore.js holds the page -> frame map).
 FRAMED = {"domage/" + n for n in ("news.html", "prods.html", "members.html", "links.html", "mod.html")}
 # Pages that list people: removal footer.
-PEOPLE = {"staff.html", "domage/members.html", "oneliner.html", "index.htm"}
+PEOPLE = {"staff.html", "domage/members.html", "oneliner.html", "index.htm",
+          "jobs/spirit.html", "jobs/magnus.html", "jobs/vulpine.html", "its/info.htm"}
+# Pages left out of the sitemap (a move notice to a dead host).
+NOT_IN_SITEMAP = {"/mono/"}
+# Extra files copied from scripts/ into site/ (source, destination).
+ASSETS = [("frame-restore.js", "frame-restore.js"), ("mod-player.js", "domage/mod-player.js"),
+          ("its.css", "its/its.css")]
+VENDOR = "vendor/chiptune"  # chiptune3 (libopenmpt in WebAssembly), copied to site/domage/chiptune/
+
 
 MAIL = "chandra_oj&#64;pm.me"
 FOOTER = ('<p align="center"><font face="Verdana, Arial, Helvetica, sans-serif" size="-2">'
@@ -51,7 +62,24 @@ def enc(s: str) -> bytes:
 
 # Targets that are not in the raw copy (empty file, CGI form, executable, missing folder): the link
 # becomes plain text followed by a note.
-DEAD = ("areyou32.zip", "cgi-bin/webapply.pl.htm", "its.exe", "ptc/index.htm")
+DEAD = ("areyou32.zip", "cgi-bin/webapply.pl.htm", "its.exe", "ptc/index.htm", "bank.html")
+
+# Privacy of the job offers: phone, fax and street address dropped; e-mail whose local part is a
+# family name: domain cut. (page, old, new), exact replacements.
+JOB_FIXES = [
+    ("jobs/spirit.html", '<a href="mailto:hanek@spiritlink.de">Hanek@spiritlink.de</a>', "hanek@????"),
+    ("jobs/spirit.html", "e-mail: mailto:hanek@spirit-link.de tel: 09131/8126648<br>", "e-mail: hanek@????<br>"),
+    ("jobs/spirit.html", "web : http://www.spirit-link.de fax: 09131/8126657<br>", "web : http://www.spirit-link.de<br>"),
+    ("jobs/spirit.html", "----SPIRIT LINK GMBH::AM WEICHSELGARTEN 19::91058 ERLANGEN----", "----SPIRIT LINK GMBH----"),
+    # Teleport Pro leftover: the mailto pointed to the home page
+    ("jobs/papple.html", '<a\r\nhref="../index.htm">fruitless@pineapple-interactive.com</a>',
+     '<a href="mailto:fruitless@pineapple-interactive.com">fruitless@pineapple-interactive.com</a>'),
+]
+
+MOD_BODY = ('<BODY BGColor=#000000 text=#C0C0C0 link=#C0C0C0 vlink=#C0C0C0 alink=#FFFFFF>\n<!-- ONLINE MODULE! -->\n'
+            '<CENTER>\n<FONT FACE="Verdana, Arial, sans-serif" SIZE="-2">module<br><b id="state">amando.xm</b></FONT><br>\n'
+            '<BUTTON id="play" type="button" aria-pressed="false" style="margin-top:4px">Play</BUTTON>\n</CENTER>\n'
+            '<script type="module" src="mod-player.js"></script>\n</body>')
 
 
 def fix_html(rel: str, t: str) -> str:
@@ -61,13 +89,32 @@ def fix_html(rel: str, t: str) -> str:
     for d in DEAD:
         t = re.sub(r'<a\s[^>]*href="%s"[^>]*>(.*?)</a>' % re.escape(d), r"\1 <i>(not archived)</i>", t,
                    flags=re.S | re.I)
+    for page, old, new in JOB_FIXES:
+        if rel == page:
+            assert old in t, (page, old)
+            t = t.replace(old, new)
+    t = re.sub(r'\s*<meta\s+name="author"[^>]*>', "", t, flags=re.I)  # real names of authors, invisible
+    t = re.sub(r"<!-- Changed by:[^>]*-->\s*", "", t)  # Dreamweaver trace with a full name
+    if rel == "mono/index.htm":
+        t = re.sub(r'\s*<meta\s+http-equiv="refresh"[^>]*>', "", t, flags=re.I)  # no automatic leave
+    if rel.startswith("its/") and rel.endswith((".htm", ".html")):
+        t = re.sub(r"</head>", '<link rel="stylesheet" href="its.css" type="text/css">\n</head>', t, count=1, flags=re.I)
+    if rel == "domage/mod.html":
+        t, n = re.subn(r"<BODY\b.*</body>", lambda m: MOD_BODY, t, count=1, flags=re.S | re.I)
+        assert n == 1
+    if rel == "domage/index.htm":
+        t = re.sub(r"(<head[^>]*>)", r'\1\n<script src="/frame-restore.js"></script>', t, count=1, flags=re.I)
     if rel == "search.html":
         a = t.index("<form method=\"get\" action=\"search.html\"")
         b = t.index("<!-- #EndEditable -->", a)
         t = t[:a] + ARCHIVE_NOTE + "\t\t\t" + t[b:]
     if rel in FRAMED:
-        t = re.sub(r"(<head[^>]*>)", r'\1\n<script>if(window.top===window)window.location.replace("index.htm");</script>',
-                   t, count=1, flags=re.I)
+        t = re.sub(r"(<head[^>]*>)", r'\1\n<script src="/frame-restore.js"></script>', t, count=1, flags=re.I)
+        # Frames: external links open in a new tab (they would replace the whole window otherwise).
+        def blank(m):
+            tag = re.sub(r'\s+(?:target|rel)\s*=\s*(?:"[^"]*"|[^\s>]+)', "", m.group(0))
+            return tag[:-1] + ' target="_blank" rel="noopener">'
+        t = re.sub(r'<a\s[^>]*href\s*=\s*"(?:https?|ftp)://[^"]*"[^>]*>', blank, t, flags=re.I)
     if rel in PEOPLE:
         t = re.sub(r"</body>", lambda m: FOOTER + "</body>", t, count=1, flags=re.I)
     return t
@@ -131,6 +178,10 @@ def build() -> list[str]:
         out[rel] = data
     out["index.htm"] = enc(render_index())
     out["oneliner.html"] = enc(render_oneliner())
+    for src, dst in ASSETS:
+        out[dst] = (ROOT / "scripts" / src).read_bytes()
+    for f in sorted((ROOT / "scripts" / VENDOR).iterdir()):
+        out["domage/chiptune/" + f.name] = f.read_bytes()
     for rel in [r for r in out if r.endswith("/index.htm") or r == "index.htm"]:
         out[rel + "l"] = out[rel]  # bunny storage serves index.html for directories
     out["404.html"] = (ROOT / "hosting/404.html").read_bytes()
@@ -139,7 +190,7 @@ def build() -> list[str]:
                    and not (r.endswith("/index.htm") or r == "index.htm"))
     urls = ["/"] + ["/" + r[:-len("index.html")] if r.endswith("index.html") and "/" in r else "/" + r
                     for r in pages if r != "index.html"]
-    urls = sorted(set(urls))
+    urls = sorted(set(urls) - NOT_IN_SITEMAP)
     out["sitemap.xml"] = ('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                           + "".join("<url><loc>https://%s%s</loc></url>\n" % (HOST, u) for u in urls)
                           + "</urlset>\n").encode()

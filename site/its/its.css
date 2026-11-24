@@ -1,0 +1,2 @@
+/* Impact Texture Studio pages: a centred column of at most 800 px (the tables are width 100%). */
+body { max-width: 800px; margin: 0 auto; }
