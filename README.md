@@ -13,13 +13,14 @@ part was the Orange Juice oneliner on the front page.
 
 - The pages, images and CSS of the skin, unchanged apart from the cleanups below.
 - `domage/` (a demogroup's pages hosted on scene.org, a frameset: inner pages reopen inside it when
-  landed on directly), `its/` (Impact Texture Studio, a texture tool; the .exe is not published), `jobs/`, `mono/` (a move notice).
+  landed on directly; its module `amando.xm` plays through chiptune3/libopenmpt, Play/Pause button), `its/` (Impact Texture Studio, a texture tool; the .exe is not published), `jobs/`, `mono/` (a move notice).
 - **Oneliner**: the front page shows the last 20 lines as of 2000-11-19; `oneliner.html` holds the
   whole period (2000-09-01 to 2000-11-19, nicks only, no IP, host or user agent; e-mail
   addresses cut to `local@????`).
 - The FTP search form was a live database query: replaced by an "archived" notice.
-- Pages listing people (staff, group members, oneliner) end with a removal contact line.
-- Dropped: the forms, the Teleport Pro duplicates `main.htm` / `latest.htm`, the server-side
+- Pages listing people (staff, group members, oneliner, three job offers, ITS info) end with a removal contact line.
+- `its/` is a centred column of at most 800 px. Author names in `<meta>` tags are dropped.
+- Dropped: `bank.html` (bank details of scene.org, no banking data), phone, fax and street address of one job offer, the forms, the Teleport Pro duplicates `main.htm` / `latest.htm`, the server-side
   include, `its.exe`, an empty `areyou32.zip` and two dead targets (shown as "not archived").
 
 The engine code is never published.
@@ -33,7 +34,7 @@ Inputs come only from the shared raw store `~/Code/id3x/raw` (`$ID3X_RAW`): the 
 scripts/publish.sh   # build site/, verify it (second build, same hashes), check the exclude list
 ```
 
-`site/` (119 files) is **committed**: it is generated on the Mac (the oneliner needs the private
+`site/` (124 files) is **committed**: it is generated on the Mac (the oneliner needs the private
 database), reviewed in the pull request, and on merge the *Website: deploy* workflow checks it,
 scans it with ClamAV, syncs it to bunny.net, purges the CDN and runs the smoke test. `infra/` is
 applied by *Infra: bunny.net*; a weekly *Monitoring* run repeats the smoke test. Hosting is the
