@@ -13,7 +13,7 @@ part was the Orange Juice oneliner on the front page.
 
 - The pages, images and CSS of the skin, unchanged apart from the cleanups below.
 - `domage/` (a demogroup's pages hosted on scene.org, a frameset: inner pages reopen inside it when
-  landed on directly), `its/` (Image Tool Set manual), `jobs/`, `mono/` (a move notice).
+  landed on directly), `its/` (Impact Texture Studio, a texture tool; the .exe is not published), `jobs/`, `mono/` (a move notice).
 - **Oneliner**: the front page shows the last 20 lines as of 2000-11-19; `oneliner.html` holds the
   whole period (2000-09-01 to 2000-11-19, nicks only, no IP, host or user agent; e-mail
   addresses cut to `local@????`).
