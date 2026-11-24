@@ -45,7 +45,7 @@ PAGES = [
     ("/sceneorg.css", "text/css"),
     ("/images/sceneorg_logobig.jpg", "image/jpeg"),
     ("/robots.txt", "text/plain"),
-    ("/sitemap.xml", "application/xml"),
+    ("/sitemap.xml", "text/xml"),
 ]
 
 
