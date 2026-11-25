@@ -255,7 +255,7 @@ resource "bunnynet_pullzone_edgerule" "csp" {
   triggers = [{
     type       = "Url"
     match_type = "MatchNone"
-    patterns   = ["/domage/*"]
+    patterns   = ["*/domage/*"]
     parameter1 = null
     parameter2 = null
   }]
@@ -273,7 +273,7 @@ resource "bunnynet_pullzone_edgerule" "csp_player" {
   triggers = [{
     type       = "Url"
     match_type = "MatchAny"
-    patterns   = ["/domage/*"]
+    patterns   = ["*/domage/*"]
     parameter1 = null
     parameter2 = null
   }]
