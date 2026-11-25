@@ -81,7 +81,7 @@ resource "bunnynet_pullzone_hostname" "this" {
 locals {
   # Inline scripts and handlers exist in the 2000 pages: 'unsafe-inline' stays, nothing from another
   # origin, no eval, no plugin content, no form submission.
-  csp = join("; ", [
+  csp_directives = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
@@ -96,6 +96,14 @@ locals {
     "base-uri 'none'",
     "manifest-src 'none'",
     "worker-src 'none'",
+  ]
+  csp = join("; ", local.csp_directives)
+
+  # /domage/ mod player (chiptune3 / libopenmpt): WebAssembly.compile needs 'wasm-unsafe-eval'.
+  # Only this path gets it; 'unsafe-eval' is not granted.
+  csp_player = join("; ", [
+    for d in local.csp_directives :
+    startswith(d, "script-src ") ? "${d} 'wasm-unsafe-eval'" : d
   ])
 
   html_extensions = ["htm", "html"]
@@ -141,7 +149,6 @@ resource "bunnynet_pullzone_edgerule" "security_headers" {
   }]
 
   actions = [
-    { type = "SetResponseHeader", parameter1 = "Content-Security-Policy", parameter2 = local.csp, parameter3 = null },
     { type = "SetResponseHeader", parameter1 = "X-Content-Type-Options", parameter2 = "nosniff", parameter3 = null },
     { type = "SetResponseHeader", parameter1 = "Referrer-Policy", parameter2 = "no-referrer", parameter3 = null },
     { type = "SetResponseHeader", parameter1 = "X-Frame-Options", parameter2 = "SAMEORIGIN", parameter3 = null },
@@ -235,6 +242,43 @@ resource "bunnynet_pullzone_edgerule" "static_cache" {
   }]
 
   actions = [{ type = "OverrideBrowserCacheTime", parameter1 = "604800", parameter2 = null, parameter3 = null }]
+}
+
+# 7-8. Content-Security-Policy, one rule per path so each response gets exactly one value.
+resource "bunnynet_pullzone_edgerule" "csp" {
+  pullzone    = bunnynet_pullzone.this.id
+  description = "CSP: every path except /domage/ (no WebAssembly)"
+  enabled     = true
+  priority    = 7
+  match_type  = "MatchAll"
+
+  triggers = [{
+    type       = "Url"
+    match_type = "MatchNone"
+    patterns   = ["/domage/*"]
+    parameter1 = null
+    parameter2 = null
+  }]
+
+  actions = [{ type = "SetResponseHeader", parameter1 = "Content-Security-Policy", parameter2 = local.csp, parameter3 = null }]
+}
+
+resource "bunnynet_pullzone_edgerule" "csp_player" {
+  pullzone    = bunnynet_pullzone.this.id
+  description = "CSP: /domage/ mod player (adds wasm-unsafe-eval)"
+  enabled     = true
+  priority    = 8
+  match_type  = "MatchAll"
+
+  triggers = [{
+    type       = "Url"
+    match_type = "MatchAny"
+    patterns   = ["/domage/*"]
+    parameter1 = null
+    parameter2 = null
+  }]
+
+  actions = [{ type = "SetResponseHeader", parameter1 = "Content-Security-Policy", parameter2 = local.csp_player, parameter3 = null }]
 }
 
 output "storage_zone_name" {
